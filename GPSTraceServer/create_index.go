@@ -38,7 +38,7 @@ func interpolate(g1 gps, g2 gps, alpha float64) gps {
 }
 
 func latlon2meters(lat float64, lon float64) (float64, float64){
-    resolution_lat := 1.0 / (111111.0) 
+    resolution_lat := 1.0 / (111111.0)
     resolution_lon := 1.0 / (111111.0 * math.Cos(lat / 360.0 * (3.1415926 * 2.0)))
 
     lat_meter := (lat - 40) / resolution_lat
@@ -66,7 +66,7 @@ func getInterceptionPoint(lat1 float64,lon1 float64, lat2 float64, lon2 float64,
 }
 
 func getAngle(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
-    d_lat := lat2 - lat1 
+    d_lat := lat2 - lat1
     d_lon := (lon2 - lon1) * math.Cos(lat1 / 360.0 * (3.1415926 * 2.0))
 
     return math.Atan2(d_lat, d_lon) / (3.1415926 * 2.0) * 360.0
@@ -80,10 +80,10 @@ func main() {
     //fmt.Println(int(getAngle(42.0,71.0,42.0,72.0) + 180.0) % 360 )
     //fmt.Println(int(getAngle(42.0,71.0,42.0,70.0) + 180.0) % 360 )
 
-    
+
     files, _ := ioutil.ReadDir(os.Args[1])
 
-    var samplingRate int = 1 // Use this to simulate different sampling rate 
+    var samplingRate int = 1 // Use this to simulate different sampling rate
     var isEnableInterpolation int = 1 // Use this to turn on/off interpolation
     if len(os.Args)>3 {
         samplingRate,_ = strconv.Atoi(os.Args[3])
@@ -97,16 +97,19 @@ func main() {
 
     for _, f := range files {
         name := f.Name()
+        if name == ".DS_Store"{
+          continue
+        }
         trip_id_str := strings.Split(strings.Split(name, ".")[0],"_")[1]
 
-        fmt.Println(os.Args[1]+f.Name()+"   trip ID: "+trip_id_str)
-        file, _ := os.Open(os.Args[1]+f.Name())
+        fmt.Println(os.Args[1]+"/"+f.Name()+"   trip ID: "+trip_id_str)
+        file, _ := os.Open(os.Args[1]+"/"+f.Name())
         scanner := bufio.NewScanner(file)
 
 
 
         var gps_trace []gps
-        var cc int = 0 
+        var cc int = 0
         for scanner.Scan() {
             line := scanner.Text()
             items := strings.Split(line,",")
@@ -121,7 +124,9 @@ func main() {
             loc.lat,_ = strconv.ParseFloat(items[1], 64)
             loc.lon,_ = strconv.ParseFloat(items[2], 64)
             loc.timestamp, _ = strconv.Atoi(items[3])
-            
+
+
+
             if cc % samplingRate == 0 {
                 gps_trace = append(gps_trace, loc)
             }
@@ -133,16 +138,18 @@ func main() {
         for i:= 1; i < len(gps_trace); i ++ {
             gps_trace[i].timestamp -= gps_trace[0].timestamp
             gps_trace[i].tsFloat = float64(gps_trace[i].timestamp)
-        } 
-
-        gps_trace[0].timestamp = 0
-        gps_trace[0].tsFloat = float64(gps_trace[0].timestamp)
-
+        }
 
         if len(gps_trace) == 0 {
             fmt.Println("Warning, Trip is too short")
             continue
         }
+
+        gps_trace[0].timestamp = 0
+        gps_trace[0].tsFloat = float64(gps_trace[0].timestamp)
+
+
+
 
         var gps_trace_const []gps
 
@@ -159,8 +166,8 @@ func main() {
                 }
 
                 lat0, lon0 := latlon2meters(lat, lon)
-                lat1, lon1 := latlon2meters(gps_trace[tar_p].lat, gps_trace[tar_p].lon) 
-                lat2, lon2 := latlon2meters(gps_trace[tar_p+1].lat, gps_trace[tar_p+1].lon) 
+                lat1, lon1 := latlon2meters(gps_trace[tar_p].lat, gps_trace[tar_p].lon)
+                lat2, lon2 := latlon2meters(gps_trace[tar_p+1].lat, gps_trace[tar_p+1].lon)
 
                 a1, a2 := getInterceptionPoint(lat1 - lat0, lon1 - lon0, lat2 - lat0, lon2 - lon0, 5.0)
 
@@ -175,7 +182,7 @@ func main() {
                             lon = (1-a1) * gps_trace[tar_p].lon + a1 * gps_trace[tar_p+1].lon
 
                             var loc gps
-                            loc.lat = lat 
+                            loc.lat = lat
                             loc.lon = lon
                             loc.tsFloat = (1-a1) * gps_trace[tar_p].tsFloat + a1 * gps_trace[tar_p+1].tsFloat
 
@@ -190,7 +197,7 @@ func main() {
                                     lon = (1-a2) * gps_trace[tar_p].lon + a2 * gps_trace[tar_p+1].lon
 
                                     var loc gps
-                                    loc.lat = lat 
+                                    loc.lat = lat
                                     loc.lon = lon
                                     loc.tsFloat = (1-a2) * gps_trace[tar_p].tsFloat + a2 * gps_trace[tar_p+1].tsFloat
 
@@ -221,7 +228,7 @@ func main() {
 
         if len(gps_trace_const) < 2 {
             continue
-        } 
+        }
 
 
 
@@ -230,7 +237,7 @@ func main() {
         for i:=0; i< len(gps_trace_const)-1; i++ {
             l:= distance(gps_trace_const[i], gps_trace_const[i+1])
             n:= int(math.Ceil(l/0.00001))
-            
+
 
             gps_trace_itp = append(gps_trace_itp,gps_trace_const[i])
             gps_trace_itp[len(gps_trace_itp)-1].speedInv = gps_trace_const[i+1].tsFloat - gps_trace_const[i].tsFloat
@@ -269,7 +276,7 @@ func main() {
         var angle float64
         angle = 0.0
 
-        //for ind,v := range gps_trace_itp 
+        //for ind,v := range gps_trace_itp
         for i:=0; i< len(gps_trace_itp); i++ {
             v:=gps_trace_itp[i]
 
@@ -282,7 +289,7 @@ func main() {
 
             filename:= os.Args[2]+"/"+nlat+"_"+nlon+".txt"
             //fmt.Println(filename)
-            f, _ := os.OpenFile(filename, os.O_APPEND | os.O_RDWR | os.O_CREATE, 0666) 
+            f, _ := os.OpenFile(filename, os.O_APPEND | os.O_RDWR | os.O_CREATE, 0666)
 
             //f.WriteString(fmt.Sprintf("%d %d %.6f %.6f %.12f\n",ind, v.index, v.lat, v.lon, v.total_distance))
             f.WriteString(fmt.Sprintf("%s %d %.6f %.6f %.12f %.6f %.2f\n",trip_id_str, v.index, v.lat, v.lon, v.total_distance, v.speedInv, angle))
@@ -292,4 +299,3 @@ func main() {
     }
 
 }
-
